@@ -1,0 +1,22 @@
+## Build and output
+bin/
+obj/
+Publish/
+PublishFrameworkDependent/
+publish-app/
+publish-installer/
+*.user
+*.suo
+.vs/
+*.lock
+
+## Payloads and Large Distribution Binaries
+ChibiPet.Installer/Payload/
+ChibiPet_FullApp.zip
+Releases/
+
+## System and Temporary
+node_modules/
+*.log
+Thumbs.db
+Desktop.ini

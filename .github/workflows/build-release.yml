@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore ChibiPet.sln
+
+    - name: Publish ChibiPet (Standalone Win-x64)
+      run: |
+        dotnet publish ChibiPet/ChibiPet.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish-app
+
+    - name: Create Portable Archive
+      shell: pwsh
+      run: |
+        Compress-Archive -Path ./publish-app/* -DestinationPath ./ChibiPet-Portable-win-x64.zip -Force
+
+    - name: Prepare Installer Payload
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path ChibiPet.Installer/Payload -Force | Out-Null
+        Copy-Item ./ChibiPet-Portable-win-x64.zip -Destination ChibiPet.Installer/Payload/app.zip -Force
+
+    - name: Publish Installer
+      run: |
+        dotnet publish ChibiPet.Installer/ChibiPet.Installer.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o ./publish-installer
+        Move-Item ./publish-installer/ChibiPet-Setup.exe ./ChibiPet-Setup.exe -Force
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          ChibiPet-Setup.exe
+          ChibiPet-Portable-win-x64.zip
+        generate_release_notes: true
